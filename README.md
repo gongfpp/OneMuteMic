@@ -13,11 +13,17 @@
   Native macOS menu bar utility · Swift · macOS 13+
 </p>
 
+<p align="center">
+  <a href="https://github.com/gongfpp/OneMuteMic/releases/download/v1.0.0/OneMuteMic-1.0.0.zip"><strong>Download v1.0.0</strong></a>
+  ·
+  <a href="https://github.com/gongfpp/OneMuteMic/releases/download/v1.0.0/OneMuteMic-promo.mp4">Watch demo video</a>
+</p>
+
 ---
 
 OneMuteMic 是一个轻量的 macOS 菜单栏工具，用来快速切换系统默认输入设备的静音状态。
 
-不需要打开主窗口。左键点击菜单栏图标即可切换静音，也可以在任意应用中使用全局快捷键。
+不需要打开主窗口。左键点击菜单栏图标即可切换静音，也可以在任意应用中使用全局快捷键。它直接控制默认输入设备，因此使用同一输入设备的会议、语音和录音应用会同步受到影响。
 
 ## Features / 功能
 
@@ -30,11 +36,30 @@ OneMuteMic 是一个轻量的 macOS 菜单栏工具，用来快速切换系统�
 - **原生轻量**：使用 AppKit、Core Audio 与系统全局快捷键能力实现，没有常驻主窗口。
 - **本地运行**：不会读取或录制音频内容，当前代码也没有网络请求。
 
+## Demo / 演示
+
+仓库 Release 已附带一段实机宣传视频：
+
+**[▶ Watch OneMuteMic demo](https://github.com/gongfpp/OneMuteMic/releases/download/v1.0.0/OneMuteMic-promo.mp4)**
+
+后续如果要继续优化 README，建议再补一张 6–10 秒 GIF：只展示菜单栏图标、按下 `⌃⌥M`、图标从开启切到静音，再切回来。这样用户不点视频也能在 README 首屏看到核心交互。
+
 ## Install / 安装
 
-### Build from source / 从源码运行
+### Download / 直接安装
 
-当前仓库暂未提供签名、Notarization 后的正式安装包，可直接从源码构建：
+下载最新公开版本：
+
+**[Download OneMuteMic v1.0.0](https://github.com/gongfpp/OneMuteMic/releases/download/v1.0.0/OneMuteMic-1.0.0.zip)**
+
+1. 解压 `OneMuteMic-1.0.0.zip`。
+2. 把 `OneMuteMic.app` 拖入「应用程序」文件夹。
+3. 启动应用，菜单栏出现麦克风图标。
+4. 按 `⌃⌥M` 或左键点击菜单栏图标切换静音。
+
+当前 v1.0.0 使用 ad-hoc 签名且尚未经过 Apple Notarization。如果 macOS 首次启动时拦截应用，可在 Finder 中右键应用选择「打开」，或前往「系统设置 → 隐私与安全性」确认打开。
+
+### Build from source / 从源码构建
 
 ```bash
 git clone https://github.com/gongfpp/OneMuteMic.git
@@ -42,7 +67,7 @@ cd OneMuteMic
 open OneMuteMic.xcodeproj
 ```
 
-在 Xcode 中选择 **OneMuteMic** Scheme，点击 Run，或使用：
+在 Xcode 中选择 **OneMuteMic** Scheme 后运行，或使用：
 
 ```bash
 xcodebuild \
@@ -56,8 +81,6 @@ xcodebuild \
 
 - macOS 13 Ventura 或更高版本
 - Xcode（项目当前使用较新的 Xcode 工程格式）
-
-> 正式对外分发前，建议增加 Developer ID 签名、Apple Notarization 和 GitHub Releases 安装包。
 
 ## Usage / 使用
 
@@ -82,13 +105,15 @@ OneMuteMic 通过 Core Audio 控制 macOS 当前默认输入设备：
 2. 如果设备没有可写的 Mute 属性，则尝试通过输入音量实现静音。
 3. 当系统默认输入设备发生变化时，重新检测新设备的能力和状态。
 
-因此它不需要读取麦克风的音频数据，也不会把音频发送到任何地方。
+因此它不读取麦克风的音频数据，也不会把音频发送到任何地方。
 
 ## Compatibility / 兼容性
 
 OneMuteMic 支持 macOS 13+。
 
 大多数暴露标准 Core Audio 输入控制属性的内置麦克风、USB 麦克风和音频设备都可以工作。但部分虚拟音频设备、专业声卡或由厂商驱动完全接管的设备，可能不提供可写的系统静音 / 输入音量属性，此时应用会显示设备不支持静音控制。
+
+在 macOS 26 及更新系统中，如果应用已经运行但菜单栏图标不可见，也请检查「系统设置 → 菜单栏」中 OneMuteMic 的显示权限。
 
 ## FAQ
 
@@ -104,9 +129,9 @@ OneMuteMic 支持 macOS 13+。
 
 不同音频设备暴露给 macOS 的 Core Audio 属性并不完全一致。OneMuteMic 目前依赖可写的 Mute 或输入音量属性；不提供这些属性的设备会被标记为不支持。
 
-### 为什么没有下载好的 App？
+### 为什么第一次打开会被 macOS 拦截？
 
-当前仓库还没有正式的签名 / Notarization 发布流程。完成发布链路后，建议把 GitHub Releases 作为 README 最主要的安装入口。
+v1.0.0 目前是 ad-hoc 签名且未经过 Apple Notarization。正式对外分发时，应该改为 Developer ID 签名并完成 Notarization，减少 Gatekeeper 带来的安装摩擦。
 
 ## Development / 开发
 
@@ -131,14 +156,14 @@ OneMuteMic/
 
 ## Roadmap / 下一步
 
-- [ ] GitHub Releases：提供可直接安装的签名版本
 - [ ] Developer ID 签名与 Apple Notarization
 - [ ] 登录时自动启动
 - [ ] GitHub Actions 构建检查
 - [ ] Core Audio 关键逻辑的单元测试
 - [ ] 更明确的设备兼容性诊断
 - [ ] 中英文界面本地化
-- [ ] 实机演示 GIF / 短视频
+- [ ] README 实机演示 GIF
+- [ ] 稳定后考虑自动更新
 
 ## Contributing
 
