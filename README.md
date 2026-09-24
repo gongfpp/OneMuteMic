@@ -19,6 +19,10 @@
   <a href="https://github.com/gongfpp/OneMuteMic/releases/download/v1.0.0/OneMuteMic-promo.mp4">Watch demo video</a>
 </p>
 
+<p align="center">
+  <img src="docs/menubar-toggle.gif" width="720" alt="按下 ⌃⌥M，菜单栏麦克风图标从使用中切换到已静音，再按一次切回">
+</p>
+
 ---
 
 OneMuteMic 是一个轻量的 macOS 菜单栏工具，用来快速切换系统默认输入设备的静音状态。
@@ -38,7 +42,11 @@ OneMuteMic 是一个轻量的 macOS 菜单栏工具，用来快速切换系统�
 
 ## Demo / 演示
 
-仓库 Release 已附带一段实机宣传视频：
+按下 `⌃⌥M`，菜单栏图标会在「使用中」（绿）与「已静音」（红）之间切换，再按一次切回：
+
+![菜单栏图标切换演示](docs/menubar-toggle.gif)
+
+仓库 Release 另附一段完整的宣传视频：
 
 **[▶ Watch OneMuteMic demo](https://github.com/gongfpp/OneMuteMic/releases/download/v1.0.0/OneMuteMic-promo.mp4)**
 
@@ -87,6 +95,8 @@ xcodebuild \
 3. **右键点击图标**：打开设置菜单。
 4. 默认全局快捷键为 **`⌃⌥M`**。
 5. 在 **快捷键 → 自定义快捷键…** 中可以录入新的组合键。
+
+内置预设：`⌃⌥M`（默认）、`⇧⌘M`、`⌃⌥Space`、`⇧⌘Space`、`⌃⌥D`。
 
 菜单中还可以：
 
@@ -160,7 +170,7 @@ OneMuteMic/
 - [ ] Core Audio 关键逻辑的单元测试
 - [ ] 更明确的设备兼容性诊断
 - [ ] 中英文界面本地化
-- [ ] README 实机演示 GIF
+- [x] README 核心交互演示 GIF（菜单栏图标切换）
 - [ ] 稳定后考虑自动更新
 
 ## Contributing
