@@ -42,8 +42,6 @@ OneMuteMic 是一个轻量的 macOS 菜单栏工具，用来快速切换系统�
 
 **[▶ Watch OneMuteMic demo](https://github.com/gongfpp/OneMuteMic/releases/download/v1.0.0/OneMuteMic-promo.mp4)**
 
-后续如果要继续优化 README，建议再补一张 6–10 秒 GIF：只展示菜单栏图标、按下 `⌃⌥M`、图标从开启切到静音，再切回来。这样用户不点视频也能在 README 首屏看到核心交互。
-
 ## Install / 安装
 
 ### Download / 直接安装
