@@ -10,11 +10,11 @@
 </p>
 
 <p align="center">
-  Native macOS menu bar utility · Swift · macOS 13+
+  Native macOS menu bar utility · Swift · macOS 13+ · MIT License
 </p>
 
 <p align="center">
-  <a href="https://github.com/gongfpp/OneMuteMic/releases/download/v1.0.0/OneMuteMic-1.0.0.zip"><strong>Download v1.0.0</strong></a>
+  <a href="https://github.com/gongfpp/OneMuteMic/releases/download/v1.0.0/OneMuteMic-1.0.0.zip"><strong>Historical preview v1.0.0</strong></a>
   ·
   <a href="https://github.com/gongfpp/OneMuteMic/releases/download/v1.0.0/OneMuteMic-promo.mp4">Watch demo video</a>
 </p>
@@ -54,16 +54,18 @@ OneMuteMic 是一个轻量的 macOS 菜单栏工具，用来快速切换系统�
 
 ### Download / 直接安装
 
-下载最新公开版本：
+历史预览包（保留原 v1.0.0 附件）：
 
-**[Download OneMuteMic v1.0.0](https://github.com/gongfpp/OneMuteMic/releases/download/v1.0.0/OneMuteMic-1.0.0.zip)**
+**[Download historical preview v1.0.0](https://github.com/gongfpp/OneMuteMic/releases/download/v1.0.0/OneMuteMic-1.0.0.zip)**
 
 1. 解压 `OneMuteMic-1.0.0.zip`。
 2. 把 `OneMuteMic.app` 拖入「应用程序」文件夹。
 3. 启动应用，菜单栏出现麦克风图标。
 4. 按 `⌃⌥M` 或左键点击菜单栏图标切换静音。
 
-当前 v1.0.0 使用 ad-hoc 签名且尚未经过 Apple Notarization。如果 macOS 首次启动时拦截应用，可在 Finder 中右键应用选择「打开」，或前往「系统设置 → 隐私与安全性」确认打开。
+**v1.0.0 是历史开发预览包。** 它使用 ad-hoc 签名，未开启 Hardened Runtime，未经过 Apple Notarization，并包含 `com.apple.security.get-task-allow=true` 调试 entitlement。该附件保留原样；本次添加 MIT 许可证与文档没有重新构建、签名或公证应用，也不代表重新通过了 Mac 实机或麦克风测试。
+
+建议开发者先审阅源码并在自己的 Mac 上构建。下载预览包前请确认自己信任来源；macOS 的安全提示不应被视为应用已经通过 Apple 安全验证。
 
 ### Build from source / 从源码构建
 
@@ -73,20 +75,24 @@ cd OneMuteMic
 open OneMuteMic.xcodeproj
 ```
 
-在 Xcode 中选择 **OneMuteMic** Scheme 后运行，或使用：
+在 Xcode 中选择 **OneMuteMic** Scheme 后运行。也可以执行下面的命令做本地未签名构建：
 
 ```bash
 xcodebuild \
   -project OneMuteMic.xcodeproj \
   -scheme OneMuteMic \
   -configuration Release \
+  -derivedDataPath build/DerivedData \
+  CODE_SIGNING_ALLOWED=NO \
   build
 ```
 
 要求：
 
 - macOS 13 Ventura 或更高版本
-- Xcode（项目当前使用较新的 Xcode 工程格式）
+- 能打开当前工程格式的 Xcode（`objectVersion = 77`；工程记录的工具版本为 27.0，未声明旧版 Xcode 已验证）
+
+命令行产物位于 `build/DerivedData/Build/Products/Release/OneMuteMic.app`。上述命令只生成本地未签名产物，不生成 Developer ID 签名或已公证的分发包。当前项目没有第三方包依赖。
 
 ## Usage / 使用
 
@@ -139,7 +145,7 @@ OneMuteMic 支持 macOS 13+。
 
 ### 为什么第一次打开会被 macOS 拦截？
 
-v1.0.0 目前是 ad-hoc 签名且未经过 Apple Notarization。正式对外分发时，应该改为 Developer ID 签名并完成 Notarization，减少 Gatekeeper 带来的安装摩擦。
+v1.0.0 是 ad-hoc 签名的历史预览包，未启用 Hardened Runtime、未经过 Apple Notarization，并保留了调试 entitlement。详情见[安装说明](#install--安装)。后续正式分发包仍需移除调试 entitlement、启用 Hardened Runtime，并完成 Developer ID 签名与 Notarization。
 
 ## Development / 开发
 
@@ -161,6 +167,18 @@ OneMuteMic/
 - `HotKeyManager`：注册系统级快捷键
 - `ShortcutRecorder`：录入自定义组合键
 - `StatusItemController`：菜单栏 UI、状态和设置
+
+### Validation / 验证范围
+
+当前仓库没有自动化测试 target 或 GitHub Actions 工作流。许可与文档更新只进行源码结构、文件完整性和文档链接检查；没有把 Linux 环境下的静态检查当作 macOS 构建或设备验证。
+
+在 Mac 上提交行为改动前，请检查：
+
+- Xcode 构建与启动，菜单栏图标和菜单是否正常
+- 左键切换、默认快捷键、预设和自定义快捷键
+- 提示音与通知开关，以及通知未授权的情况
+- 默认输入设备切换、无输入设备或不支持控制的设备
+- 在实际会议或录音应用中确认静音与恢复输入，不仅观察菜单栏图标
 
 ## Roadmap / 下一步
 
@@ -187,4 +205,6 @@ Issue 和 Pull Request 都欢迎。
 
 ## License
 
-当前仓库尚未声明开源许可证。正式对外推广前建议明确添加许可证（例如 MIT、Apache-2.0 或其他适合项目目标的许可证）。
+本项目采用 [MIT License](LICENSE)。
+
+Copyright (c) 2026 gongfpp
