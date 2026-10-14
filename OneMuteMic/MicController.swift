@@ -21,6 +21,8 @@ final class MicController {
 
     private var deviceID: AudioDeviceID = AudioDeviceID(kAudioObjectUnknown)
     private var mechanism: Mechanism = .none
+    /// 读取输入音量时选定的可写元素；为 nil 表示当前设备没有可写的输入音量属性。
+    private var volumeElement: AudioObjectPropertyElement?
     private var savedVolume: Float32 = 1
     private var registeredListeners: [(object: AudioObjectID, address: AudioObjectPropertyAddress)] = []
 
@@ -51,7 +53,12 @@ final class MicController {
     }
 
     func reload() {
+        let previousDevice = deviceID
         deviceID = Self.defaultInputDeviceID()
+        if deviceID != previousDevice {
+            // 换设备后旧设备保存的音量不再适用，重置回默认值。
+            savedVolume = 1
+        }
         mechanism = detectMechanism()
         refreshStatus()
     }
@@ -100,17 +107,36 @@ final class MicController {
     // MARK: - Core Audio properties
 
     private func detectMechanism() -> Mechanism {
-        guard deviceID != kAudioObjectUnknown else { return .none }
+        guard deviceID != kAudioObjectUnknown else {
+            volumeElement = nil
+            return .none
+        }
         var muteAddress = Self.inputAddress(kAudioDevicePropertyMute)
         if AudioObjectHasProperty(deviceID, &muteAddress) {
             var settable: DarwinBoolean = false
             if AudioObjectIsPropertySettable(deviceID, &muteAddress, &settable) == noErr,
                settable.boolValue {
+                volumeElement = nil
                 return .mute
             }
         }
-        if readVolumeProperty() != nil { return .volume }
-        return .none
+        // 只读的音量属性不能当机制用：读得到、写不了，会让设备被误报为「使用中」。
+        volumeElement = settableVolumeElement()
+        return volumeElement == nil ? .none : .volume
+    }
+
+    /// 读取只认这一个可写元素（部分设备只有个别元素可写）；写入遍历全部可写元素，见 writeVolumeProperty。
+    private func settableVolumeElement() -> AudioObjectPropertyElement? {
+        for element in Self.volumeElements {
+            var address = Self.inputAddress(kAudioDevicePropertyVolumeScalar, element: element)
+            var settable: DarwinBoolean = false
+            if AudioObjectHasProperty(deviceID, &address),
+               AudioObjectIsPropertySettable(deviceID, &address, &settable) == noErr,
+               settable.boolValue {
+                return element
+            }
+        }
+        return nil
     }
 
     private func readMuteProperty() -> Bool? {
@@ -133,30 +159,37 @@ final class MicController {
     }
 
     private func readVolumeProperty() -> Float32? {
-        for element in Self.volumeElements {
-            var address = Self.inputAddress(kAudioDevicePropertyVolumeScalar, element: element)
-            guard AudioObjectHasProperty(deviceID, &address) else { continue }
-            var value: Float32 = 0
-            var size = UInt32(MemoryLayout<Float32>.size)
-            if AudioObjectGetPropertyData(deviceID, &address, 0, nil, &size, &value) == noErr {
-                return value
-            }
+        guard let element = volumeElement ?? settableVolumeElement() else { return nil }
+        var address = Self.inputAddress(kAudioDevicePropertyVolumeScalar, element: element)
+        guard AudioObjectHasProperty(deviceID, &address) else { return nil }
+        var value: Float32 = 0
+        var size = UInt32(MemoryLayout<Float32>.size)
+        guard AudioObjectGetPropertyData(deviceID, &address, 0, nil, &size, &value) == noErr else {
+            return nil
         }
-        return nil
+        return value
     }
 
+    /// 写入遍历全部可写元素：部分设备只在 1/2 通道暴露输入音量，
+    /// 只写一个元素会留下未静音的通路，界面显示已静音但实际还开着。
     private func writeVolumeProperty(_ volume: Float32) -> Bool {
-        var wrote = false
+        var writableCount = 0
+        var succeeded = 0
         for element in Self.volumeElements {
             var address = Self.inputAddress(kAudioDevicePropertyVolumeScalar, element: element)
-            guard AudioObjectHasProperty(deviceID, &address) else { continue }
+            var settable: DarwinBoolean = false
+            guard AudioObjectHasProperty(deviceID, &address),
+                  AudioObjectIsPropertySettable(deviceID, &address, &settable) == noErr,
+                  settable.boolValue else { continue }
+            writableCount += 1
             var value = volume
             if AudioObjectSetPropertyData(deviceID, &address, 0, nil,
                                           UInt32(MemoryLayout<Float32>.size), &value) == noErr {
-                wrote = true
+                succeeded += 1
             }
         }
-        return wrote
+        // 有任一可写元素没写进去，就仍存在未静音的通路，必须报失败而不是显示已静音。
+        return writableCount > 0 && succeeded == writableCount
     }
 
     private static func inputAddress(_ selector: AudioObjectPropertySelector,
@@ -216,6 +249,8 @@ final class MicController {
         if currentDefault != deviceID {
             removeListeners()
             deviceID = currentDefault
+            // 换设备后旧设备保存的音量不再适用，重置回默认值。
+            savedVolume = 1
             mechanism = detectMechanism()
             installListeners()
         }
