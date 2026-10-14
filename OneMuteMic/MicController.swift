@@ -21,6 +21,8 @@ final class MicController {
 
     private var deviceID: AudioDeviceID = AudioDeviceID(kAudioObjectUnknown)
     private var mechanism: Mechanism = .none
+    /// 音量读写共用的可写元素；为 nil 表示当前设备没有可写的输入音量属性。
+    private var volumeElement: AudioObjectPropertyElement?
     private var savedVolume: Float32 = 1
     private var registeredListeners: [(object: AudioObjectID, address: AudioObjectPropertyAddress)] = []
 
@@ -100,17 +102,36 @@ final class MicController {
     // MARK: - Core Audio properties
 
     private func detectMechanism() -> Mechanism {
-        guard deviceID != kAudioObjectUnknown else { return .none }
+        guard deviceID != kAudioObjectUnknown else {
+            volumeElement = nil
+            return .none
+        }
         var muteAddress = Self.inputAddress(kAudioDevicePropertyMute)
         if AudioObjectHasProperty(deviceID, &muteAddress) {
             var settable: DarwinBoolean = false
             if AudioObjectIsPropertySettable(deviceID, &muteAddress, &settable) == noErr,
                settable.boolValue {
+                volumeElement = nil
                 return .mute
             }
         }
-        if readVolumeProperty() != nil { return .volume }
-        return .none
+        // 只读的音量属性不能当机制用：读得到、写不了，会让设备被误报为「使用中」。
+        volumeElement = settableVolumeElement()
+        return volumeElement == nil ? .none : .volume
+    }
+
+    /// 音量读写必须落在同一个可写元素上（部分设备只有个别元素可写）。
+    private func settableVolumeElement() -> AudioObjectPropertyElement? {
+        for element in Self.volumeElements {
+            var address = Self.inputAddress(kAudioDevicePropertyVolumeScalar, element: element)
+            var settable: DarwinBoolean = false
+            if AudioObjectHasProperty(deviceID, &address),
+               AudioObjectIsPropertySettable(deviceID, &address, &settable) == noErr,
+               settable.boolValue {
+                return element
+            }
+        }
+        return nil
     }
 
     private func readMuteProperty() -> Bool? {
@@ -133,30 +154,24 @@ final class MicController {
     }
 
     private func readVolumeProperty() -> Float32? {
-        for element in Self.volumeElements {
-            var address = Self.inputAddress(kAudioDevicePropertyVolumeScalar, element: element)
-            guard AudioObjectHasProperty(deviceID, &address) else { continue }
-            var value: Float32 = 0
-            var size = UInt32(MemoryLayout<Float32>.size)
-            if AudioObjectGetPropertyData(deviceID, &address, 0, nil, &size, &value) == noErr {
-                return value
-            }
+        guard let element = volumeElement ?? settableVolumeElement() else { return nil }
+        var address = Self.inputAddress(kAudioDevicePropertyVolumeScalar, element: element)
+        guard AudioObjectHasProperty(deviceID, &address) else { return nil }
+        var value: Float32 = 0
+        var size = UInt32(MemoryLayout<Float32>.size)
+        guard AudioObjectGetPropertyData(deviceID, &address, 0, nil, &size, &value) == noErr else {
+            return nil
         }
-        return nil
+        return value
     }
 
     private func writeVolumeProperty(_ volume: Float32) -> Bool {
-        var wrote = false
-        for element in Self.volumeElements {
-            var address = Self.inputAddress(kAudioDevicePropertyVolumeScalar, element: element)
-            guard AudioObjectHasProperty(deviceID, &address) else { continue }
-            var value = volume
-            if AudioObjectSetPropertyData(deviceID, &address, 0, nil,
-                                          UInt32(MemoryLayout<Float32>.size), &value) == noErr {
-                wrote = true
-            }
-        }
-        return wrote
+        guard let element = volumeElement ?? settableVolumeElement() else { return false }
+        var address = Self.inputAddress(kAudioDevicePropertyVolumeScalar, element: element)
+        guard AudioObjectHasProperty(deviceID, &address) else { return false }
+        var value = volume
+        return AudioObjectSetPropertyData(deviceID, &address, 0, nil,
+                                          UInt32(MemoryLayout<Float32>.size), &value) == noErr
     }
 
     private static func inputAddress(_ selector: AudioObjectPropertySelector,
